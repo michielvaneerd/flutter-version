@@ -7,13 +7,31 @@ function exit(message) {
     process.exit(0);
 }
 
+const matchReg = /Flutter\s([\d\.]+)/;
+
 let flutterVersionsDir = `${homeDir}/flutter-versions`;
+let flutterSymlink = `${homeDir}/flutter`;
+
+function getFlutterVersion(path) {
+    const versionMatch = matchReg.exec(execSync(path ? `${path}/bin/flutter --version` : 'flutter --version'));
+    if (!versionMatch || versionMatch.length < 2) {
+        exit('Cannot get Flutter version from flutter --version command');
+    }
+    return versionMatch[1].trim();
+}
+
+if (!fs.existsSync('pubspec.yaml')) {
+    exit('You are not in the root of a Flutter project.');
+}
 
 if (fs.existsSync(`${homeDir}/.flutter-version.json`)) {
     try {
         const json = JSON.parse(fs.readFileSync(`${homeDir}/.flutter-version.json`, 'utf8'));
         if (json.flutterVersionsDir) {
-            flutterVersionsDir = json.flutterVersionsDir;
+            flutterVersionsDir = json.flutterVersionsDir.replace("~", homeDir);
+        }
+        if (json.flutterSymlink) {
+            flutterSymlink = json.flutterSymlink.replace("~", homeDir);
         }
     } catch (ex) {
         exit(ex.toString());
@@ -26,41 +44,50 @@ if (!fs.existsSync(flutterVersionsDir)) {
 
 let newVersion = null;
 
-if (process.argv.length === 3) {
-    // Switch version.
-    newVersion = process.argv[2].trim();
-    
-    const filePath = `${flutterVersionsDir}/` + (newVersion === 'latest' ? 'flutter' : `flutter-${newVersion}`);
-
-    if (!fs.existsSync(filePath)) {
-        exit(`Cannot find path ${filePath} for Flutter version ${newVersion}`);
-    }
-
-    const stat = fs.lstatSync(`${homeDir}/flutter`, {throwIfNoEntry: false});
-    if (stat && stat.isSymbolicLink()) {
-        execSync(`unlink ${homeDir}/flutter`);
-    }
-    execSync(`ln -s ${filePath} ${homeDir}/flutter`);
-}
-
-if (!fs.existsSync('pubspec.yaml')) {
-    exit('You are not in the root of a Flutter project.');
-}
-
 // Read current project version
-const projectVersion = fs.readFileSync('.flutter-version', 'utf8').trim();
+const projectVersion = fs.existsSync('.flutter-version') ? fs.readFileSync('.flutter-version', 'utf8').trim() : null;
 
-// Get current active Flutter version
-const versionMatch = /Flutter\s([\d\.]+)/.exec(execSync("flutter --version"));
-if (!versionMatch || versionMatch.length < 2) {
-    exit('Cannot get Flutter version from flutter --version command');
+if (process.argv.length > 2) {
+
+    switch (process.argv[2]) {
+        case 'is-default':
+            {
+                const currentBinaryVersion = getFlutterVersion();
+                const defaultBinaryVersion = getFlutterVersion(`${flutterVersionsDir}/flutter`);
+                if (currentBinaryVersion == defaultBinaryVersion) {
+                    exit(`Yes you are currently running the default Flutter version ${currentBinaryVersion}`);
+                } else {
+                    exit(`No, your current Flutter version ${currentBinaryVersion} is NOT the default Flutter version ${defaultBinaryVersion}`);
+                }
+            }
+            break;
+        default:
+            {
+                // Switch version.
+                newVersion = process.argv[2].trim();
+
+                const filePath = `${flutterVersionsDir}/` + (newVersion === 'default' ? 'flutter' : `flutter-${newVersion}`);
+
+                if (!fs.existsSync(filePath)) {
+                    exit(`Cannot find path ${filePath} for Flutter version ${newVersion}`);
+                }
+
+                const stat = fs.lstatSync(flutterSymlink, { throwIfNoEntry: false });
+                if (stat && stat.isSymbolicLink()) {
+                    execSync(`unlink ${flutterSymlink}`);
+                }
+                execSync(`ln -s ${filePath} ${flutterSymlink}`);
+            }
+            break;
+    }
 }
 
-const binaryVersion = versionMatch[1].trim();
+// The real Flutter version when running flutter --version
+const binaryVersion = getFlutterVersion();
 
-if (newVersion && newVersion !== 'latest') {
+if (newVersion && newVersion !== 'default') {
     if (newVersion != binaryVersion) {
-        exit(`The new version ${newVersion} is different than the binary version ${binaryVersion}! Probably because you ran flutter upgrade in a specific Flutter version!`);
+        exit(`The new version ${newVersion} is different than the binary version ${binaryVersion}! Probably because you ran flutter upgrade in a specific Flutter version! Fix this before continuing!`);
     }
 }
 
