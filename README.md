@@ -1,6 +1,6 @@
 # flutter-version
 
-Node script that helps switching between different Flutter versions.
+Node script that helps switching between different Flutter versions inside your Flutter project and globally.
 
 This is not a fully automatic script like [fvm](https://fvm.app/), but just a small help utility that enables to switch between versions and write the current version to the Flutter project directory. It does 2 things:
 
@@ -57,6 +57,10 @@ If you want to use the default version (the one that is called `flutter` - so wi
 ### `flutter-version is-default`
 
 Check if the current active Flutter version is the default Flutter version. Use this first before you do `flutter upgrade`.
+
+### `flutter-version list`
+
+Lists all Flutter versions and whether it is the project and/or system version.
 
 ## Important
 

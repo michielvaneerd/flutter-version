@@ -61,10 +61,42 @@ if (process.argv.length > 2) {
                 }
             }
             break;
+        case 'check':
+            break;
+        case 'ls':
+        case 'list':
+            const currentDefaultVersion = fs.existsSync(`${flutterVersionsDir}/flutter`) ? getFlutterVersion(`${flutterVersionsDir}/flutter`) : null;
+            const currentBinaryVersion = getFlutterVersion();
+            const files = fs.readdirSync(flutterVersionsDir).filter(function(file) {
+                return file.startsWith('flutter-');
+            }).concat([currentDefaultVersion]).map(function(file) {
+                const version = file.substring(file.indexOf('-') + 1);
+                let versionString = version;
+                if (version == currentBinaryVersion) {
+                    versionString += ' - current system version';
+                }
+                if (version == projectVersion) {
+                    versionString += ' - current project version';
+                }
+                return versionString;
+            });
+            exit(files);
+            break;
         default:
             {
-                // Switch version.
-                newVersion = process.argv[2].trim();
+                const arg = process.argv[2].trim();
+
+                if (arg === 'switch') {
+                    // Make flutter binary version the same as the project version.
+                    const currentBinaryVersion = getFlutterVersion();
+                    if (currentBinaryVersion == projectVersion) {
+                        newVersion = 'default';
+                    } else {
+                        newVersion = projectVersion;
+                    }
+                } else {
+                    newVersion = arg;
+                }
 
                 const filePath = `${flutterVersionsDir}/` + (newVersion === 'default' ? 'flutter' : `flutter-${newVersion}`);
 
