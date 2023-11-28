@@ -85,10 +85,11 @@ if (process.argv.length > 2) {
         default:
             {
                 const arg = process.argv[2].trim();
+                const currentBinaryVersion = getFlutterVersion();
+                const currentDefaultVersion = fs.existsSync(`${flutterVersionsDir}/flutter`) ? getFlutterVersion(`${flutterVersionsDir}/flutter`) : null;
 
                 if (arg === 'switch') {
                     // Make flutter binary version the same as the project version.
-                    const currentBinaryVersion = getFlutterVersion();
                     if (currentBinaryVersion == projectVersion) {
                         newVersion = 'default';
                     } else {
@@ -96,6 +97,9 @@ if (process.argv.length > 2) {
                     }
                 } else {
                     newVersion = arg;
+                    if (newVersion !== 'default' && newVersion === currentDefaultVersion) {
+                        newVersion = 'default';
+                    }
                 }
 
                 const filePath = `${flutterVersionsDir}/` + (newVersion === 'default' ? 'flutter' : `flutter-${newVersion}`);
