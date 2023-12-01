@@ -10,6 +10,7 @@
     "flutter-version": "./bin/flutter-version"
   },
   "keywords": [],
+  "repository": "github:michielvaneerd/flutter-version",
   "author": "",
   "license": "ISC"
 }
