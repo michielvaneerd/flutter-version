@@ -1,7 +1,5 @@
 # Flutter version switcher
 
-## What does it solve?
-
 - Switch easily between multiple Flutter versions and channels.
 - Writes down the Flutter version and channel into your Flutter project.
 
@@ -73,32 +71,4 @@ While not required, it's best to hijack the `flutter` command, becaue it prevent
 - Running `flutter upgrade` while your active Flutter version points to a versioned directory, for example `~/flutter-versions/flutter-13.6.2`, because then the directory version and the real version wouldn't match anymore.
 - Running `flutter channel CHANNEL`, because you should just download a channel, place it in the `~/flutter-versions/flutter-CHANNEL` directory and run `flutter upgrade` while this channel is the active Flutter version.
 
-To make this work, make the `flutter` bash script below executable with `chmod u+x flutter` and add it to your `PATH` before `~/flutter/bin`.
-
-```shell
-#!/usr/bin/env bash
-
-if [[ $1 == "channel" ]]
-then
-    echo "Switching channels is not allowed when using flutter-version."
-    exit 1
-elif [[ $1 == "upgrade" ]]
-then
-    # Make sure we are NOT in a versioned directory, like flutter-3.16.2
-    OUTPUT=`flutter-version is-versioned`
-    if [[ $OUTPUT == "1" ]]
-    then
-        echo "Upgrading while in a versioned Flutter directory is not allowed."
-        exit 1
-    fi
-fi
-
-# Get the real flutter path and execute it with the provided arguments.
-FLUTTER_CMD_PATH=`flutter-version flutter-path`
-if [[ -z "$FLUTTER_CMD_PATH" ]]
-then
-    echo "The flutter-version command is not found."
-    exit 1
-fi
-eval $FLUTTER_CMD_PATH "$@"
-```
+To make this work, make the [./flutter](flutter) bash script executable with `chmod u+x flutter` and add it to your `PATH` before `~/flutter/bin`. This way this command will be executed instead of the "official" flutter command.
