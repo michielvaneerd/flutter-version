@@ -17,7 +17,7 @@ const availableCommands = {
         description: 'Switches to a specific Flutter version. It also updates the .flutter-version.json file if you are in the root of a Flutter project.',
         examples: [
             'switch VERSION - Switches to a specific Flutter version',
-            'switch - Without VERSION argument - can be used only when inside a Flutter project directory - switches to the Flutter version that is written in the .flutter-version.json file',
+            `switch - Without VERSION argument - can be used only when inside a Flutter project directory - switches to the Flutter version that is written in the .flutter-version.json file, or, if this file doesn't exist, to the current active Flutter version`,
         ],
         func: execSwitch
     },
@@ -120,11 +120,23 @@ function execList() {
  * Switches the active Flutter version on the system. If we are in the root of a Flutter project, it also writes this into the flutter-version.json file.
  */
 function execSwitch() {
-    if (process.argv.length < 4) {
-        utils.exitOnError('The switch command requires a version or channel argument.');
+    if (!isInRootOfFlutterProject && process.argv.length < 4) {
+        utils.exitOnError('The switch command requires a version or channel argument if you are not in the root of a Flutter project.');
     }
-    const newVersion = process.argv[3]; // can be a real version like 3.16.2 or one of the 3 channels stable, beta and  master.
-    const newDir = `${paths.flutterVersionsDir}/flutter-${newVersion}`;
+    let newDir = null;
+    if (process.argv.length >= 4) {
+        const newVersion = process.argv[3];
+        newDir = `${paths.flutterVersionsDir}/flutter-${newVersion}`;
+    } else {
+        const projectVersionAndChannel = utils.getProjectVersionAndChannel();
+        if (!projectVersionAndChannel) {
+            // No .flutter-version.json, so now we are going to write this file with the current active Flutter version information.
+            newDir = utils.getPathOfSymlink(paths.flutterSymlink);
+        } else {
+            newDir = `${paths.flutterVersionsDir}/${projectVersionAndChannel.dir}`;
+        }
+    }
+
     if (!fs.existsSync(newDir)) {
         utils.exitOnError(`Directory ${newDir} doesn't exist.`);
     }
@@ -138,8 +150,10 @@ function execSwitch() {
     execSync(`ln -s ${newDir} ${paths.flutterSymlink}`);
 
     const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
+    const realPath = utils.getPathOfSymlink(paths.flutterSymlink);
+    globalActiveVersionAndChannel.dir = realPath.substring(realPath.lastIndexOf('/') + 1);
 
-    const message = [`Flutter version ${globalActiveVersionAndChannel.version} (${globalActiveVersionAndChannel.channel}) activated`];
+    const message = [`Flutter version ${globalActiveVersionAndChannel.version} (${globalActiveVersionAndChannel.channel}) activated, path = ${globalActiveVersionAndChannel.dir}`];
 
     if (isInRootOfFlutterProject) {
         fs.writeFileSync('.flutter-version.json', JSON.stringify(globalActiveVersionAndChannel, null, 4));
