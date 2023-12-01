@@ -3,6 +3,10 @@
 - Switch easily between multiple Flutter versions and channels.
 - Writes down the Flutter version and channel into your Flutter project.
 
+## Installation
+
+`npm i -g flutter-version`
+
 ## Prerequisites
 
 - All Flutter directories should be in the `~/flutter-versions` directory. Possible sub directories:
