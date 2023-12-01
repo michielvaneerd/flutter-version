@@ -70,7 +70,7 @@ flutter-version flutter-path
 
 ## Hijack the `flutter` command
 
-While not required, it's best to hijack the `flutter` command, becaue it prevents you from doing:
+While not required, it's best to hijack the `flutter` command, because it prevents you from doing:
 
 - Running `flutter upgrade` while your active Flutter version points to a versioned directory, for example `~/flutter-versions/flutter-13.6.2`, because then the directory version and the real version wouldn't match anymore.
 - Running `flutter channel CHANNEL`, because you should just download a channel, place it in the `~/flutter-versions/flutter-CHANNEL` directory and run `flutter upgrade` while this channel is the active Flutter version.
