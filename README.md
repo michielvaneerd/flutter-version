@@ -1,67 +1,104 @@
-# flutter-version
+# Flutter version switcher
 
-Node script that helps switching between different Flutter versions inside your Flutter project and globally.
+## What does it solve?
 
-This is not a fully automatic script like [fvm](https://fvm.app/), but just a small help utility that enables to switch between versions and write the current version to the Flutter project directory. It does 2 things:
-
-1. Create a symbolic link to the Flutter version you want.
-2. Write the Flutter version inside a file in your project.
-
-## Install
-
-Install this package globally:
-
-`node -g flutter-version`
+- Switch easily between multiple Flutter versions and channels.
+- Writes down the Flutter version and channel into your Flutter project.
 
 ## Prerequisites
 
-- By default this script uses `~/flutter` as the symlink and `~/flutter-versions` as the directory with flutter versions. If you want to use different values, specify this in the `.flutter-version.json` file. See below for a example.
-- Each flutter version should be called flutter-VERSION, for example `flutter-3.16.0`. If you want to have a default flutter directory, call this one `flutter`.
-- Add `~/flutter/bin` (or whatever you set as the `flutterSymlink` value) to your PATH.
+- All Flutter directories should be in the `~/flutter-versions` directory. Possible sub directories:
+    - `/flutter-versions/flutter-3.16.1` - this is a stable versioned directory
+    - `/flutter-versions/flutter-master` - the master channel
+    - `/flutter-versions/flutter-beta` - the beta channel
+    - `/flutter-versions/flutter-stable` - the stable channel
+- A symlink from `~/flutter` to one of the directories above should exist. For example pointing to `~/flutter-versions/flutter-3.16.1`.
+- The path `~/flutter/bin` should be added to your `PATH`.
 
-### Configuration file .flutter-version.json example
+Note that currently the versioned directories assume it is the stable channel.
 
-The optional `~/.flutter-version.json` file can be used to change some defaults, like the `flutterVersionsDir` and `flutterSymlink`.
+## Commands
 
-These are the default values, but you can change them if needed.
+### List
 
-```json
-{
-    "flutterVersionsDir": "~/flutter-versions",
-    "flutterSymlink": "~/flutter"
-}
+Lists all Flutter versions available.
+
+```shell
+flutter-version list
 ```
 
-### What is doesn't do
+```shell
+┌─────────┬──────────────────┬──────────┬──────────┬────────┬─────────┬──────────┐
+│ (index) │    directory     │ version  │ channel  │ active │ project │ mismatch │
+├─────────┼──────────────────┼──────────┼──────────┼────────┼─────────┼──────────┤
+│    0    │ 'flutter-3.13.9' │ '3.13.9' │ 'stable' │ false  │  false  │   null   │
+│    1    │ 'flutter-stable' │ '3.16.2' │ 'stable' │  true  │  true   │   null   │
+└─────────┴──────────────────┴──────────┴──────────┴────────┴─────────┴──────────┘
+```
 
-Download Flutter versions. Just download the needed versions from https://docs.flutter.dev/release/archive and place them inside the `flutterVersionsDir`.
+### Switch
 
-## Usage
+Switches the Flutter version on your system and, if you are in the root of a Flutter project, writes the version and channel into the `.flutter-version.json` file.
 
-### `flutter-version`
+Switches to the master channel (note that `~/flutter-versions/flutter-master` should exist):
 
-Write down the current active Flutter version to `.flutter-version` inside your project.
+```shell
+flutter-version switch master
+```
 
-### `flutter-version VERSION`
+Switches to a specific version  (note that `~/flutter-versions/flutter-3.16.2` should exist):
 
-Create a symbolic link to `~/flutter-versions/flutter-VERSION` and then write this version to `.flutter-version` inside your project.
+```shell
+flutter-version switch 3.16.2
+```
 
-For example to switch to version 3.16.0
+If you are in a project and you want to switch to whatever Flutter version if written into the `.flutter-version.json` file, just do a switch without version or channel argument:
 
-`flutter-version 3.16.0`
+```shell
+flutter-version switch
+```
 
-If you want to use the default version (the one that is called `flutter` - so without a version appended):
+### Gets the current active Flutter path
 
-`flutter-version default`
+This prints the real path to the Flutter directory.
 
-### `flutter-version is-default`
+```shell
+flutter-version flutter-path
+```
 
-Check if the current active Flutter version is the default Flutter version. Use this first before you do `flutter upgrade`.
+## Hijack the `flutter` command
 
-### `flutter-version list`
+While not required, it's best to hijack the `flutter` command, becaue it prevents you from doing:
 
-Lists all Flutter versions and whether it is the project and/or system version.
+- Running `flutter upgrade` while your active Flutter version points to a versioned directory, for example `~/flutter-versions/flutter-13.6.2`, because then the directory version and the real version wouldn't match anymore.
+- Running `flutter channel CHANNEL`, because you should just download a channel, place it in the `~/flutter-versions/flutter-CHANNEL` directory and run `flutter upgrade` while this channel is the active Flutter version.
 
-## Important
+To make this work, make the `flutter` bash script below executable with `chmod u+x flutter` and add it to your `PATH` before `~/flutter/bin`.
 
-Make sure to ONLY run `flutter upgrade` when your current active flutter version is the default one! You can check this with `flutter-version is-default`.
+```shell
+#!/usr/bin/env bash
+
+if [[ $1 == "channel" ]]
+then
+    echo "Switching channels is not allowed when using flutter-version."
+    exit 1
+elif [[ $1 == "upgrade" ]]
+then
+    # Make sure we are NOT in a versioned directory, like flutter-3.16.2
+    OUTPUT=`flutter-version is-versioned`
+    if [[ $OUTPUT == "1" ]]
+    then
+        echo "Upgrading while in a versioned Flutter directory is not allowed."
+        exit 1
+    fi
+fi
+
+# Get the real flutter path and execute it with the provided arguments.
+FLUTTER_CMD_PATH=`flutter-version flutter-path`
+if [[ -z "$FLUTTER_CMD_PATH" ]]
+then
+    echo "The flutter-version command is not found."
+    exit 1
+fi
+eval $FLUTTER_CMD_PATH "$@"
+```

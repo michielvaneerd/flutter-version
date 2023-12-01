@@ -1,136 +1,150 @@
 const fs = require('fs');
-const { execSync } = require("child_process");
+const { execSync } = require('child_process');
 const homeDir = require('os').homedir();
+const utils = require('./utils');
 
-function exit(message) {
-    console.log(message);
-    process.exit(0);
-}
+const paths = utils.initPaths(homeDir);
+const isInRootOfFlutterProject = utils.isInRootOfFlutterProject();
 
-const matchReg = /Flutter\s([\d\.]+)/;
+const knownChannels = ['stable', 'beta', 'master'];
 
-let flutterVersionsDir = `${homeDir}/flutter-versions`;
-let flutterSymlink = `${homeDir}/flutter`;
-
-function getFlutterVersion(path) {
-    const versionMatch = matchReg.exec(execSync(path ? `${path}/bin/flutter --version` : 'flutter --version'));
-    if (!versionMatch || versionMatch.length < 2) {
-        exit('Cannot get Flutter version from flutter --version command');
+const availableCommands = {
+    'list': {
+        description: 'Lists all available Flutter versions',
+        func: execList
+    },
+    'switch': {
+        description: 'Switches to a specific Flutter version. It also updates the .flutter-version.json file if you are in the root of a Flutter project.',
+        examples: [
+            'switch VERSION - Switches to a specific Flutter version',
+            'switch - Without VERSION argument - can be used only when inside a Flutter project directory - switches to the Flutter version that is written in the .flutter-version.json file',
+        ],
+        func: execSwitch
+    },
+    'is-versioned': {
+        description: 'Checks if the current active Flutter version points to a versioned directory',
+        func: execIsVersioned
+    },
+    'flutter-path': {
+        description: 'Gets the path of the current active Flutter version',
+        func: execFlutterPath
     }
-    return versionMatch[1].trim();
-}
+};
 
-if (!fs.existsSync('pubspec.yaml')) {
-    exit('You are not in the root of a Flutter project.');
-}
-
-if (fs.existsSync(`${homeDir}/.flutter-version.json`)) {
-    try {
-        const json = JSON.parse(fs.readFileSync(`${homeDir}/.flutter-version.json`, 'utf8'));
-        if (json.flutterVersionsDir) {
-            flutterVersionsDir = json.flutterVersionsDir.replace("~", homeDir);
-        }
-        if (json.flutterSymlink) {
-            flutterSymlink = json.flutterSymlink.replace("~", homeDir);
-        }
-    } catch (ex) {
-        exit(ex.toString());
-    }
-}
-
-if (!fs.existsSync(flutterVersionsDir)) {
-    exit(`Cannot find ${flutterVersionsDir}. Create this directory and add your Flutter archives to this directory.`);
-}
-
-let newVersion = null;
-
-// Read current project version
-const projectVersion = fs.existsSync('.flutter-version') ? fs.readFileSync('.flutter-version', 'utf8').trim() : null;
-
-if (process.argv.length > 2) {
-
-    switch (process.argv[2]) {
-        case 'is-default':
-            {
-                const currentBinaryVersion = getFlutterVersion();
-                const defaultBinaryVersion = getFlutterVersion(`${flutterVersionsDir}/flutter`);
-                if (currentBinaryVersion == defaultBinaryVersion) {
-                    exit(`Yes you are currently running the default Flutter version ${currentBinaryVersion}`);
-                } else {
-                    exit(`No, your current Flutter version ${currentBinaryVersion} is NOT the default Flutter version ${defaultBinaryVersion}`);
-                }
-            }
-            break;
-        case 'check':
-            break;
-        case 'ls':
-        case 'list':
-            const currentDefaultVersion = fs.existsSync(`${flutterVersionsDir}/flutter`) ? getFlutterVersion(`${flutterVersionsDir}/flutter`) : null;
-            const currentBinaryVersion = getFlutterVersion();
-            const files = fs.readdirSync(flutterVersionsDir).filter(function(file) {
-                return file.startsWith('flutter-');
-            }).concat([currentDefaultVersion]).map(function(file) {
-                const version = file.substring(file.indexOf('-') + 1);
-                let versionString = version;
-                if (version == currentBinaryVersion) {
-                    versionString += ' - current system version';
-                }
-                if (version == projectVersion) {
-                    versionString += ' - current project version';
-                }
-                return versionString;
+function exitWithHelpText(message) {
+    console.error(`${message}`);
+    console.group();
+    for (var key in availableCommands) {
+        console.log(`${key} - ${availableCommands[key].description}`);
+        if (availableCommands[key].examples) {
+            console.group();
+            availableCommands[key].examples.forEach(function(example) {
+                console.log(example);
             });
-            exit(files);
-            break;
-        default:
-            {
-                const arg = process.argv[2].trim();
-                const currentBinaryVersion = getFlutterVersion();
-                const currentDefaultVersion = fs.existsSync(`${flutterVersionsDir}/flutter`) ? getFlutterVersion(`${flutterVersionsDir}/flutter`) : null;
+            console.groupEnd();
+        }
+    }
+    console.groupEnd();
+    process.exit(1);
+}
 
-                if (arg === 'switch') {
-                    // Make flutter binary version the same as the project version.
-                    if (currentBinaryVersion == projectVersion) {
-                        newVersion = 'default';
-                    } else {
-                        newVersion = projectVersion;
-                    }
-                } else {
-                    newVersion = arg;
-                    if (newVersion !== 'default' && newVersion === currentDefaultVersion) {
-                        newVersion = 'default';
-                    }
-                }
+if (process.argv.length <= 2 || !(process.argv[2] in availableCommands)) {
+    exitWithHelpText('Missing or unknown command.');
+}
 
-                const filePath = `${flutterVersionsDir}/` + (newVersion === 'default' ? 'flutter' : `flutter-${newVersion}`);
+const command = process.argv[2];
+availableCommands[command].func();
 
-                if (!fs.existsSync(filePath)) {
-                    exit(`Cannot find path ${filePath} for Flutter version ${newVersion}`);
-                }
+/**
+ * Gets the path of the current active Flutter command line client.
+ * @returns {String} Current active Flutter command line client.
+ */
+function execFlutterPath() {
+    console.log(`${utils.getPathOfSymlink(paths.flutterSymlink)}/bin/flutter`);
+    process.exit();
+}
 
-                const stat = fs.lstatSync(flutterSymlink, { throwIfNoEntry: false });
-                if (stat && stat.isSymbolicLink()) {
-                    execSync(`unlink ${flutterSymlink}`);
-                }
-                execSync(`ln -s ${filePath} ${flutterSymlink}`);
+/**
+ * Checks if the current active Flutter version points to a versioned directory
+ * @returns {Boolean | String} True if we are currently on a versioned Flutter directory, false if we aren't and an error String in case of some error.
+ */
+function execIsVersioned() {
+    if (!utils.isSymlink(paths.flutterSymlink)) {
+        utils.exitOnError('Cannot get symbolic link');
+    }
+    const realPath = utils.getPathOfSymlink(paths.flutterSymlink);
+    console.log(utils.isVersionedPath(realPath) ? 1 : 0);
+    process.exit();
+}
+
+/**
+ * Lists all Flutter versions.
+ */
+function execList() {
+    const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
+    const projectVersionAndChannel = isInRootOfFlutterProject ? utils.getProjectVersionAndChannel() : null;
+    const files = fs.readdirSync(paths.flutterVersionsDir).filter(function (file) {
+        return file.startsWith('flutter-');
+    }).map(function (file) {
+        return file.substring(file.indexOf('-') + 1);
+    });
+    files.sort();
+    const rows = [];
+    for (const version of files) {
+        const dir = `flutter-${version}`;
+        const versionAndChannel = utils.getFlutterVersionAndChannel(`${paths.flutterVersionsDir}/${dir}`);
+        const row = new utils.OutputRow(
+            dir,
+            versionAndChannel.version,
+            versionAndChannel.channel,
+            versionAndChannel.version === globalActiveVersionAndChannel.version && versionAndChannel.channel === globalActiveVersionAndChannel.channel,
+            projectVersionAndChannel && projectVersionAndChannel.version === versionAndChannel.version && projectVersionAndChannel.channel === versionAndChannel.channel,
+            null
+        );
+        if (knownChannels.indexOf(version) !== -1) {
+            if (version !== versionAndChannel.channel) {
+                row.mismatch = `Directory doesn't match channel ${versionAndChannel.channel}`;
             }
-            break;
+        } else {
+            if (version !== versionAndChannel.version) {
+                row.mismatch = `Directory doesn't match version ${versionAndChannel.version}`;
+            }
+        }
+        rows.push(row);
     }
+    console.table(rows);
+    process.exit();
 }
 
-// The real Flutter version when running flutter --version
-const binaryVersion = getFlutterVersion();
-
-if (newVersion && newVersion !== 'default') {
-    if (newVersion != binaryVersion) {
-        exit(`The new version ${newVersion} is different than the binary version ${binaryVersion}! Probably because you ran flutter upgrade in a specific Flutter version! Fix this before continuing!`);
+/**
+ * Switches the active Flutter version on the system. If we are in the root of a Flutter project, it also writes this into the flutter-version.json file.
+ */
+function execSwitch() {
+    if (process.argv.length < 4) {
+        utils.exitOnError('The switch command requires a version or channel argument.');
     }
-}
+    const newVersion = process.argv[3]; // can be a real version like 3.16.2 or one of the 3 channels stable, beta and  master.
+    const newDir = `${paths.flutterVersionsDir}/flutter-${newVersion}`;
+    if (!fs.existsSync(newDir)) {
+        utils.exitOnError(`Directory ${newDir} doesn't exist.`);
+    }
+    const stat = fs.lstatSync(paths.flutterSymlink, { throwIfNoEntry: false });
+    if (stat && stat.isSymbolicLink()) {
+        execSync(`unlink ${paths.flutterSymlink}`);
+    }
+    if (fs.existsSync(paths.flutterSymlink)) {
+        utils.exitOnError(`File ${paths.flutterSymlink} does exist and is not a symbolic link.`);
+    }
+    execSync(`ln -s ${newDir} ${paths.flutterSymlink}`);
 
-fs.writeFileSync('.flutter-version', binaryVersion);
+    const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
 
-console.log(`Written current Flutter version ${binaryVersion} to .flutter-version`);
+    const message = [`Flutter version ${globalActiveVersionAndChannel.version} (${globalActiveVersionAndChannel.channel}) activated`];
 
-if (binaryVersion != projectVersion) {
-    console.log(`Switched from ${projectVersion} to ${binaryVersion} - make sure to run flutter pub get!`);
+    if (isInRootOfFlutterProject) {
+        fs.writeFileSync('.flutter-version.json', JSON.stringify(globalActiveVersionAndChannel, null, 4));
+        message.push('also written into the project .flutter-version.json file');
+    }
+    console.log(message.join(' - '));
+    process.exit();
 }
