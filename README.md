@@ -15,9 +15,23 @@
     - `/flutter-versions/flutter-beta` - the beta channel
     - `/flutter-versions/flutter-stable` - the stable channel
 - A symlink from `~/flutter` to one of the directories above should exist. For example pointing to `~/flutter-versions/flutter-3.16.1`.
-- The path `~/flutter/bin` should be added to your `PATH`.
+- The path `~/flutter/bin` should be added to your `PATH` (use `.zprofile` on Mac as `.zshrc` isn't read by VSCode).
 
 Note that currently the versioned directories assume it is the stable channel.
+
+## VSCode
+
+Disable _Dart: Add SDK to terminal path_ because otherwise your last Flutter path will be added to the $PATH. If you forgot to do this and you see an old Flutter path when you do: `echo $PATH`, make sure to do an `exit` from the Terminal, then close VScode and start it again. Then double check `echo $PATH` and verify if your old Flutter path has been removed.
+
+Make also sure that you don't have any entries for `flutterSdkPaths` in your VSCOde settings file. This setting enables switching versions from within VSCode, but it writes down the used version in the `settings.json` file, which is not what we want.
+
+Add your flutter path to the `.vscode/settings.json` file in your Flutter project:
+
+```json
+{
+    "dart.flutterSdkPath": "~/flutter"
+}
+```
 
 ## Commands
 
@@ -75,4 +89,4 @@ While not required, it's best to hijack the `flutter` command, because it preven
 - Running `flutter upgrade` while your active Flutter version points to a versioned directory, for example `~/flutter-versions/flutter-13.6.2`, because then the directory version and the real version wouldn't match anymore.
 - Running `flutter channel CHANNEL`, because you should just download a channel, place it in the `~/flutter-versions/flutter-CHANNEL` directory and run `flutter upgrade` while this channel is the active Flutter version.
 
-To make this work, make the [./flutter](flutter) bash script executable with `chmod u+x flutter` and add it to your `PATH` before `~/flutter/bin`. This way this command will be executed instead of the "official" flutter command.
+To make this work, make the [./flutter](flutter) bash script executable with `chmod u+x flutter` and add it to your `PATH` before `~/flutter/bin`. This way this command will be executed instead of the "official" flutter command. On MAC OS, add this to the `.zprofile` file and NOT the `.zshrc` file, as this last one isn't read by VSCode.
