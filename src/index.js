@@ -1,14 +1,26 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
-const homeDir = require('os').homedir();
+const os = require('os');
 const utils = require('./utils');
+const path = require('path');
 
+const homeDir = os.homedir();
+const tmpDir = os.tmpdir();
 const paths = utils.initPaths(homeDir);
 const isInRootOfFlutterProject = utils.isInRootOfFlutterProject();
+
 
 const knownChannels = ['stable', 'beta', 'master'];
 
 const availableCommands = {
+    'install': {
+        description: 'Install Flutter version',
+        func: execInstall
+    },
+    'uninstall': {
+        description: 'Uninstall Flutter version',
+        func: execUninstall
+    },
     'list': {
         description: 'Lists all available Flutter versions',
         func: execList
@@ -38,7 +50,7 @@ function exitWithHelpText(message) {
         console.log(`${key} - ${availableCommands[key].description}`);
         if (availableCommands[key].examples) {
             console.group();
-            availableCommands[key].examples.forEach(function(example) {
+            availableCommands[key].examples.forEach(function (example) {
                 console.log(example);
             });
             console.groupEnd();
@@ -52,8 +64,19 @@ if (process.argv.length <= 2 || !(process.argv[2] in availableCommands)) {
     exitWithHelpText('Missing or unknown command.');
 }
 
-const command = process.argv[2];
-availableCommands[command].func();
+(async function () {
+
+    const command = process.argv[2];
+    try {
+        await availableCommands[command].func();
+        console.log('OK');
+    } catch (err) {
+        console.error(err);
+    }
+
+}());
+
+
 
 /**
  * Gets the path of the current active Flutter command line client.
@@ -78,6 +101,38 @@ function execIsVersioned() {
 }
 
 /**
+ * Install specific Flitter version
+ */
+async function execInstall() {
+    const tag = process.argv[3]; // stable: 3.16.4 and beta: 3.18.0-0.2.pre (include PRE!)
+    const channel = process.argv[4] ?? 'stable'; // can be beta or stable
+    if (['stable', 'beta'].indexOf(channel) === -1) {
+        utils.exitOnError('Invalid channel argument.');
+    }
+
+    // See for SDK archive: https://docs.flutter.dev/release/archive?tab=macos
+
+    const arch = os.arch();
+    const url = `https://storage.googleapis.com/flutter_infra_release/releases/${channel}/macos/flutter_macos_${arch === 'arm64' ? 'arm64_' : ''}${tag}-${channel}.zip`;
+    const zipFile = await utils.download(url, tmpDir, true);
+    await utils.unzip(zipFile, tmpDir, true);
+    // The ZIP file is unzipped into /tmp/flutter, so now rename this to the tagged directory name and move to the flutter versions dir
+    fs.renameSync(path.join(tmpDir, 'flutter'), path.join(paths.flutterVersionsDir, `flutter-${tag}`));
+    fs.unlinkSync(zipFile);
+    process.exit();
+}
+
+function execUninstall() {
+    // TODO: check if current active one is the one to delete?
+    const tag = process.argv[3];
+    const file = path.join(paths.flutterVersionsDir, `flutter-${tag}`);
+    if (!fs.existsSync(file)) {
+        utils.exitOnError(`File ${file} does not exist.`);
+    }
+    fs.rmSync(file, { recursive: true, force: true });
+}
+
+/**
  * Lists all Flutter versions.
  */
 function execList() {
@@ -95,6 +150,7 @@ function execList() {
         const versionAndChannel = utils.getFlutterVersionAndChannel(`${paths.flutterVersionsDir}/${dir}`);
         const row = new utils.OutputRow(
             dir,
+            version,
             versionAndChannel.version,
             versionAndChannel.channel,
             versionAndChannel.version === globalActiveVersionAndChannel.version && versionAndChannel.channel === globalActiveVersionAndChannel.channel,

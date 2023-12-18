@@ -1,9 +1,11 @@
 const fs = require('fs');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
+const https = require('https');
+const path = require('path');
 
-const matchVersionOutputReg = /Flutter\s([\d\.]+)/;
+const matchVersionOutputReg = /Flutter\s([\d\.\-\w]+)\s/;
 const matchChannelOutputReg = /\schannel\s(stable|beta|master)\s/;
-const matchVersionAppendix = /flutter\-([\d\.]+$)/;
+const matchVersionAppendix = /flutter\-([\d\.\-\w]+$)/;
 
 function exitOnError(message, errorCode = 1) {
     log(`ERROR: ${message}`);
@@ -16,6 +18,72 @@ function exitOnError(message, errorCode = 1) {
  */
 function log(message) {
     console.log(message);
+}
+
+async function download(url, destinationDir, withOutput = false) {
+    return new Promise((resolve, reject) => {
+        const fileName = path.basename(url);
+        const destination = path.join(destinationDir, fileName);
+        try {
+            https.get(url, response => {
+                if (response.statusCode !== 200) {
+                    throw new Error(response.statusMessage);
+                }
+                const contentLength = parseInt(response.headers['content-length'], 10);
+                let currentDownloadedBytes = 0;
+                let currentProgress = 0; // in percentage
+                const fileStream = fs.createWriteStream(destination);
+                response.pipe(fileStream);
+                response.on('data', data => {
+                    currentDownloadedBytes += data.length;
+                    const newProgress = Math.round(currentDownloadedBytes / contentLength * 100);
+                    if (newProgress > currentProgress) {
+                        if (withOutput) {
+                            process.stdout.write(`Downloaded ${newProgress}% of ${contentLength} bytes\r`);
+                        }
+                    }
+                    currentProgress = newProgress;
+                });
+                fileStream.on('finish', () => {
+                    fileStream.close();
+                    console.log("");
+                    resolve(destination);
+                });
+            }).on('error', err => {
+                reject(err);
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+async function unzip(path, destination, withOutput = false) {
+    return new Promise((resolve, reject) => {
+        try {
+            const cmd = spawn('unzip', ['-o', path, '-d', destination]);
+            if (withOutput) {
+                cmd.stdout.on('data', data => {
+                    process.stdout.write(`${data}`);
+                });
+            }
+            cmd.stderr.on('data', data => {
+                reject(`${data}`);
+            });
+            cmd.on('exit', code => {
+                if (code !== 0) {
+                    reject(code);
+                } else {
+                    resolve();
+                }
+            });
+            cmd.on('error', err => {
+                reject(err);
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
 }
 
 /**
@@ -114,8 +182,9 @@ function getFlutterVersionAndChannel(path) {
 }
 
 class OutputRow {
-    constructor(directory, version, channel, active, project, mismatch) {
+    constructor(directory, tag, version, channel, active, project, mismatch) {
         this.directory = directory;
+        this.tag = tag;
         this.version = version;
         this.channel = channel;
         this.active = active;
@@ -143,5 +212,7 @@ module.exports = {
     getPathOfSymlink,
     isSymlink,
     isVersionedPath,
-    OutputRow
+    OutputRow,
+    download,
+    unzip
 }
