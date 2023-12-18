@@ -87,7 +87,7 @@ async function unzip(path, destination, withOutput = false) {
 }
 
 /**
- * Checks and initializes the `flutterVersionsDir` and `flutterSymlink` paths. These can be overridden with the `~/flutter-version.json` file.
+ * Checks and initializes the `flutterVersionsDir` and `flutterSymlink` paths. These can be overridden with the `~/.flutter-version.json` file.
  * @param {String} homeDir Home directory.
  * @returns {Object} Object containing the `flutterVersionsDir` and `flutterSymlink` paths.
  */
@@ -108,9 +108,6 @@ function initPaths(homeDir) {
         } catch (ex) {
             exitOnError(ex.toString());
         }
-    }
-    if (!fs.existsSync(systemConfig.flutterVersionsDir)) {
-        exitOnError(`Cannot find ${systemConfig.flutterVersionsDir}. Create this directory and add your Flutter archives to this directory.`);
     }
     return systemConfig;
 }

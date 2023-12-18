@@ -2,18 +2,31 @@
 
 - Switch easily between multiple Flutter versions and channels.
 - Writes down the Flutter version and channel into your Flutter project.
+- You can have `versioned` and `unversioned` Flutter versions.
+
+A `versioned` Flutter means that it is fixed on this version. This cannot be upgraded.
+`Unversioned` means that the Flutter version is `stable`, `beta` or `master` and this can be upgraded.
 
 ## Installation
 
 `npm i -g flutter-version`
+
+## Initialize
+
+The command `flutter-version init` will do:
+
+- Checks if `~/flutter-versions` exists or create it.
+- Downloads the stable flutter into this directory.
+- Creates the `~/flutter` symlink to the downloaded stable Flutter.
+- Displays the line that you should add to your `.zprofile`.
 
 ## Prerequisites
 
 - All Flutter directories should be in the `~/flutter-versions` directory. Possible sub directories:
     - `/flutter-versions/flutter-3.16.1` - this is a stable versioned directory
     - `/flutter-versions/flutter-master` - the master channel
-    - `/flutter-versions/flutter-beta` - the beta channel
-    - `/flutter-versions/flutter-stable` - the stable channel
+    - `/flutter-versions/flutter-beta` - the unversioned beta channel
+    - `/flutter-versions/flutter-stable` - the unversioned stable channel
 - A symlink from `~/flutter` to one of the directories above should exist. For example pointing to `~/flutter-versions/flutter-3.16.1`.
 - The path `~/flutter/bin` should be added to your `PATH` (use `.zprofile` on Mac as `.zshrc` isn't read by VSCode).
 
