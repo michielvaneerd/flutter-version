@@ -5,7 +5,7 @@ import * as utils from '../utils.js';
 /**
  * Switches the active Flutter version on the system. If we are in the root of a Flutter project, it also writes this into the flutter-version.json file.
  */
-export function execSwitch(argv, flutterVersionsDir, flutterSymlink) {
+export function execSwitch(argv: Array<string>, flutterVersionsDir: string, flutterSymlink: string): void {
 
     const isInRootOfFlutterProject = utils.isInRootOfFlutterProject();
    

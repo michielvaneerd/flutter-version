@@ -19,7 +19,8 @@ type SystemConfig = {
 
 type VersionAndChannel = {
     version: string,
-    channel: string
+    channel: string,
+    dir?: string
 }
 
 /**
@@ -191,8 +192,8 @@ class OutputRow {
     channel: string;
     active: boolean;
     project: boolean;
-    mismatch: string | null;
-    constructor(directory: string, tag: string, version: string, channel: string, active: boolean, project: boolean, mismatch: string | null) {
+    mismatch?: string;
+    constructor(directory: string, tag: string, version: string, channel: string, active: boolean, project: boolean, mismatch?: string) {
         this.directory = directory;
         this.tag = tag;
         this.version = version;
@@ -207,7 +208,7 @@ class OutputRow {
  * Gets the projects Flutter version and channel that is written into yhe .flutter-version.json file.
  * @returns {Object | null} Flutter version and channel that is written in the .flutter-version.json file or null if this file doesn't exist.
  */
-function getProjectVersionAndChannel(): object | null {
+function getProjectVersionAndChannel(): VersionAndChannel | null {
     return fs.existsSync('.flutter-version.json') ? JSON.parse(fs.readFileSync('.flutter-version.json', 'utf8').trim()) : null;
 }
 

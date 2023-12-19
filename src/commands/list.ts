@@ -5,7 +5,7 @@ import constants from '../constants.json' with { type: 'json' };
 /**
  * Lists all Flutter versions.
  */
-export function execList(flutterVersionsDir) {
+export function execList(flutterVersionsDir: string): void {
     const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
     const projectVersionAndChannel = utils.isInRootOfFlutterProject() ? utils.getProjectVersionAndChannel() : null;
     const files = fs.readdirSync(flutterVersionsDir).filter(function (file) {
@@ -24,8 +24,7 @@ export function execList(flutterVersionsDir) {
             versionAndChannel.version,
             versionAndChannel.channel,
             versionAndChannel.version === globalActiveVersionAndChannel.version && versionAndChannel.channel === globalActiveVersionAndChannel.channel,
-            projectVersionAndChannel && projectVersionAndChannel.version === versionAndChannel.version && projectVersionAndChannel.channel === versionAndChannel.channel,
-            null
+            projectVersionAndChannel !== null && projectVersionAndChannel.version === versionAndChannel.version && projectVersionAndChannel.channel === versionAndChannel.channel
         );
         if (constants.knownChannels.indexOf(version) !== -1) {
             if (version !== versionAndChannel.channel) {

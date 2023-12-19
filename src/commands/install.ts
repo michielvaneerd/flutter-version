@@ -9,7 +9,7 @@ import * as utils from '../utils.js';
  *  `flutter-version install 3.16.8 stable`
  *  `flutter-version install 3.16.8.pre beta`
  */
-export async function execInstall(flutterVersionsDir) {
+export async function execInstall(flutterVersionsDir: string) {
     const tmpDir = os.tmpdir();
     const tag = process.argv[3]; // stable: 3.16.4 and beta: 3.18.0-0.2.pre (include PRE!)
     const channel = process.argv[4] ?? 'stable'; // can be beta or stable
