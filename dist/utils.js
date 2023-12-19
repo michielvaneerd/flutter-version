@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import * as fs from 'fs';
 import { execSync, spawn } from 'child_process';
 import * as https from 'https';
@@ -25,75 +16,71 @@ function exitOnError(message, errorCode = 1) {
 function log(message) {
     console.log(message);
 }
-function download(url, destinationDir, withOutput = false) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            const fileName = path.basename(url);
-            const destination = path.join(destinationDir, fileName);
-            try {
-                https.get(url, response => {
-                    if (response.statusCode !== 200) {
-                        throw new Error(response.statusMessage);
-                    }
-                    const contentLength = parseInt(response.headers['content-length'], 10);
-                    let currentDownloadedBytes = 0;
-                    let currentProgress = 0; // in percentage
-                    const fileStream = fs.createWriteStream(destination);
-                    response.pipe(fileStream);
-                    response.on('data', data => {
-                        currentDownloadedBytes += data.length;
-                        const newProgress = Math.round(currentDownloadedBytes / contentLength * 100);
-                        if (newProgress > currentProgress) {
-                            if (withOutput) {
-                                process.stdout.write(`Downloaded ${newProgress}% of ${contentLength} bytes\r`);
-                            }
+async function download(url, destinationDir, withOutput = false) {
+    return new Promise((resolve, reject) => {
+        const fileName = path.basename(url);
+        const destination = path.join(destinationDir, fileName);
+        try {
+            https.get(url, response => {
+                if (response.statusCode !== 200) {
+                    throw new Error(response.statusMessage);
+                }
+                const contentLength = parseInt(response.headers['content-length'], 10);
+                let currentDownloadedBytes = 0;
+                let currentProgress = 0; // in percentage
+                const fileStream = fs.createWriteStream(destination);
+                response.pipe(fileStream);
+                response.on('data', data => {
+                    currentDownloadedBytes += data.length;
+                    const newProgress = Math.round(currentDownloadedBytes / contentLength * 100);
+                    if (newProgress > currentProgress) {
+                        if (withOutput) {
+                            process.stdout.write(`Downloaded ${newProgress}% of ${contentLength} bytes\r`);
                         }
-                        currentProgress = newProgress;
-                    });
-                    fileStream.on('finish', () => {
-                        fileStream.close();
-                        console.log("");
-                        resolve(destination);
-                    });
-                }).on('error', err => {
-                    reject(err);
+                    }
+                    currentProgress = newProgress;
                 });
-            }
-            catch (err) {
+                fileStream.on('finish', () => {
+                    fileStream.close();
+                    console.log("");
+                    resolve(destination);
+                });
+            }).on('error', err => {
                 reject(err);
-            }
-        });
+            });
+        }
+        catch (err) {
+            reject(err);
+        }
     });
 }
-function unzip(path, destination, withOutput = false) {
-    return __awaiter(this, void 0, void 0, function* () {
-        return new Promise((resolve, reject) => {
-            try {
-                const cmd = spawn('unzip', ['-o', path, '-d', destination]);
-                if (withOutput) {
-                    cmd.stdout.on('data', data => {
-                        process.stdout.write(`${data}`);
-                    });
+async function unzip(path, destination, withOutput = false) {
+    return new Promise((resolve, reject) => {
+        try {
+            const cmd = spawn('unzip', ['-o', path, '-d', destination]);
+            if (withOutput) {
+                cmd.stdout.on('data', data => {
+                    process.stdout.write(`${data}`);
+                });
+            }
+            cmd.stderr.on('data', data => {
+                reject(`${data}`);
+            });
+            cmd.on('exit', code => {
+                if (code !== 0) {
+                    reject(code);
                 }
-                cmd.stderr.on('data', data => {
-                    reject(`${data}`);
-                });
-                cmd.on('exit', code => {
-                    if (code !== 0) {
-                        reject(code);
-                    }
-                    else {
-                        resolve();
-                    }
-                });
-                cmd.on('error', err => {
-                    reject(err);
-                });
-            }
-            catch (err) {
+                else {
+                    resolve();
+                }
+            });
+            cmd.on('error', err => {
                 reject(err);
-            }
-        });
+            });
+        }
+        catch (err) {
+            reject(err);
+        }
     });
 }
 /**
@@ -179,6 +166,13 @@ function getFlutterVersionAndChannel(path = '') {
     };
 }
 class OutputRow {
+    directory;
+    tag;
+    version;
+    channel;
+    active;
+    project;
+    mismatch;
     constructor(directory, tag, version, channel, active, project, mismatch) {
         this.directory = directory;
         this.tag = tag;
