@@ -166,8 +166,6 @@ function isVersionedPath(path: string): boolean {
 
 /**
  * Returns the Flutter version of this Flutter directory.
- * @param {String|null} path The Flutter directory.
- * @returns {Object} Flutter version and channel.
  */
 function getFlutterVersionAndChannel(path = ''): VersionAndChannel {
     const realPath = path ? `${path}/bin/flutter --version` : 'flutter --version';
