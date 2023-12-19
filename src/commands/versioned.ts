@@ -3,7 +3,7 @@ import * as utils from '../utils.js';
 /**
  * Checks if the current active Flutter version points to a versioned directory
  */
-export function execVersioned(flutterSymlink: string): void {
+export async function execVersioned(flutterSymlink: string) {
     if (!utils.isSymlink(flutterSymlink)) {
         utils.exitOnError('Cannot get symbolic link');
     }

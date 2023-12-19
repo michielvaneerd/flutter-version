@@ -4,7 +4,7 @@ import constants from '../constants.json' with { type: 'json' };
 /**
  * Lists all Flutter versions.
  */
-export function execList(flutterVersionsDir) {
+export async function execList(flutterVersionsDir) {
     const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
     const projectVersionAndChannel = utils.isInRootOfFlutterProject() ? utils.getProjectVersionAndChannel() : null;
     const files = fs.readdirSync(flutterVersionsDir).filter(function (file) {

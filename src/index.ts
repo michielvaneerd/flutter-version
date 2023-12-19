@@ -12,7 +12,7 @@ const homeDir = os.homedir();
 const paths = utils.initPaths(homeDir);
 
 type CommandHash = {
-    [index: string]: { description: string, func: Function, examples?: Array<string> }
+    [index: string]: { description: string, func: (argv?: string[]) => Promise<void>, examples?: string[] }
 };
 
 const availableCommands: CommandHash = {
@@ -27,7 +27,7 @@ const availableCommands: CommandHash = {
     },
     'uninstall': {
         description: 'Uninstall a specific Flutter version',
-        func: (argv: Array<string>) => execUninstall(argv, paths.flutterVersionsDir)
+        func: (argv) => execUninstall(argv!, paths.flutterVersionsDir)
     },
     'list': {
         description: 'Lists all available Flutter versions',
@@ -39,7 +39,7 @@ const availableCommands: CommandHash = {
             'switch VERSION - Switches to a specific Flutter version',
             `switch - Without VERSION argument - can be used only when inside a Flutter project directory - switches to the Flutter version that is written in the .flutter-version.json file, or, if this file doesn't exist, to the current active Flutter version`,
         ],
-        func: (argv: Array<string>) => execSwitch(argv, paths.flutterVersionsDir, paths.flutterSymlink)
+        func: (argv) => execSwitch(argv!, paths.flutterVersionsDir, paths.flutterSymlink)
     },
     'versioned': {
         description: 'Checks if the current active Flutter is inside a versioned directory',
@@ -67,24 +67,21 @@ function exitWithHelpText(message: string): void {
         console.log('');
     }
     
-    
     process.exit(1);
 }
 
-
-
-(async function () {
-
+async function init() {
     if (process.argv.length <= 2 || !(process.argv[2] in availableCommands)) {
         exitWithHelpText('Missing or unknown command.');
     }
-
+    
     const command = process.argv[2];
-
+    
     try {
         await availableCommands[command].func(process.argv.slice(3));
     } catch (err) {
         console.error(err);
     }
+}
 
-}());
+init();

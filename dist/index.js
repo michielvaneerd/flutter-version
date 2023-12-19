@@ -60,7 +60,7 @@ function exitWithHelpText(message) {
     }
     process.exit(1);
 }
-(async function () {
+async function init() {
     if (process.argv.length <= 2 || !(process.argv[2] in availableCommands)) {
         exitWithHelpText('Missing or unknown command.');
     }
@@ -71,4 +71,5 @@ function exitWithHelpText(message) {
     catch (err) {
         console.error(err);
     }
-}());
+}
+init();
