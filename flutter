@@ -4,9 +4,15 @@
 # It prevents the switching of channels, because this needs to be done by downloading a channel from the archive.
 # And it prevents doing an upgrade while the active Flutter version points to a versioned directory.
 
+if ! command -v flutter-version &> /dev/null
+then
+    echo "The flutter-version executable was not found"
+    exit 1
+fi
+
 if [[ $1 == "channel" ]]
 then
-    echo "Switching channels is not allowed when using flutter-version."
+    echo "Switching channels is not allowed when using flutter-version"
     exit 1
 elif [[ $1 == "upgrade" ]]
 then
@@ -14,17 +20,17 @@ then
     OUTPUT=`flutter-version is-versioned`
     if [[ $OUTPUT == "1" ]]
     then
-        echo "Upgrading while in a versioned Flutter directory is not allowed."
+        echo "Upgrading a versioned Flutter directory is not allowed when using flutter-version"
         exit 1
     fi
 fi
 
 # Get the real flutter path and execute it with the provided arguments.
-FLUTTER_CMD_PATH=`flutter-version flutter-path`
+FLUTTER_CMD_PATH=`flutter-version path`
 
 if [[ -z "$FLUTTER_CMD_PATH" ]]
 then
-    echo "The flutter-version command is not found."
+    echo "Cannot get the active flutter path from flutter-version"
     exit 1
 fi
 
