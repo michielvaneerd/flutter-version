@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as utils from '../utils.js';
-
 export function execUninstall(argv, flutterVersionsDir) {
     const tag = argv[0];
     const file = path.join(flutterVersionsDir, `flutter-${tag}`);
@@ -10,4 +9,3 @@ export function execUninstall(argv, flutterVersionsDir) {
     }
     fs.rmSync(file, { recursive: true, force: true });
 }
-

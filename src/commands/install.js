@@ -1,7 +1,7 @@
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
-const utils = require('../utils');
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as utils from '../utils.js';
 
 /**
  * Install specific Flutter version
@@ -9,7 +9,7 @@ const utils = require('../utils');
  *  `flutter-version install 3.16.8 stable`
  *  `flutter-version install 3.16.8.pre beta`
  */
-async function execInstall(flutterVersionsDir) {
+export async function execInstall(flutterVersionsDir) {
     const tmpDir = os.tmpdir();
     const tag = process.argv[3]; // stable: 3.16.4 and beta: 3.18.0-0.2.pre (include PRE!)
     const channel = process.argv[4] ?? 'stable'; // can be beta or stable
@@ -28,5 +28,3 @@ async function execInstall(flutterVersionsDir) {
     fs.unlinkSync(zipFile);
     process.exit();
 }
-
-exports.execInstall = execInstall;

@@ -1,5 +1,4 @@
 import * as utils from '../utils.js';
-
 /**
  * Gets the path of the current active Flutter command line client.
  * @returns {String} Current active Flutter command line client.
