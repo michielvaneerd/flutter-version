@@ -17,7 +17,7 @@ then
 elif [[ $1 == "upgrade" ]]
 then
     # Make sure we are NOT in a versioned directory, like flutter-3.16.2
-    OUTPUT=`flutter-version is-versioned`
+    OUTPUT=`flutter-version versioned`
     if [[ $OUTPUT == "1" ]]
     then
         echo "Upgrading a versioned Flutter directory is not allowed when using flutter-version"

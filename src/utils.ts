@@ -5,10 +5,10 @@ import * as path from 'path';
 
 const matchVersionOutputReg = /Flutter\s([\d\.\-\w]+)\s/;
 const matchChannelOutputReg = /\schannel\s(stable|beta|master)\s/;
-const matchVersionAppendix = /flutter\-([\d\.\-\w]+$)/;
+const matchVersionedAppendix = /flutter\-(?=.+[\d])(?=.+[\.])([\d\.\-\w]+)$/;
 
 function exitOnError(message: string, errorCode = 1): void {
-    log(`ERROR: ${message}`);
+    console.error(`ERROR: ${message}`);
     process.exit(errorCode);
 }
 
@@ -21,14 +21,6 @@ type VersionAndChannel = {
     version: string,
     channel: string,
     dir?: string
-}
-
-/**
- * Writes a message to the console.
- * @param {Object} message Message to log.
- */
-function log(message: string): void {
-    console.log(message);
 }
 
 async function download(url: string, destinationDir: string, withOutput = false): Promise<string> {
@@ -161,7 +153,7 @@ function getGlobalActiveVersionAndChannel(): VersionAndChannel {
  * @returns True if this a versioned path.
  */
 function isVersionedPath(path: string): boolean {
-    const match = matchVersionAppendix.exec(path);
+    const match = matchVersionedAppendix.exec(path);
     return match !== null && match.length >= 2 && match[1].trim() !== '';
 }
 
@@ -214,7 +206,6 @@ function getProjectVersionAndChannel(): VersionAndChannel | null {
 
 export {
     exitOnError,
-    log,
     getFlutterVersionAndChannel,
     getGlobalActiveVersionAndChannel,
     getProjectVersionAndChannel,

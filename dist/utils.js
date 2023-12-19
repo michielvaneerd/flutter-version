@@ -4,17 +4,10 @@ import * as https from 'https';
 import * as path from 'path';
 const matchVersionOutputReg = /Flutter\s([\d\.\-\w]+)\s/;
 const matchChannelOutputReg = /\schannel\s(stable|beta|master)\s/;
-const matchVersionAppendix = /flutter\-([\d\.\-\w]+$)/;
+const matchVersionedAppendix = /flutter\-(?=.+[\d])(?=.+[\.])([\d\.\-\w]+)$/;
 function exitOnError(message, errorCode = 1) {
-    log(`ERROR: ${message}`);
+    console.error(`${message}`);
     process.exit(errorCode);
-}
-/**
- * Writes a message to the console.
- * @param {Object} message Message to log.
- */
-function log(message) {
-    console.log(message);
 }
 async function download(url, destinationDir, withOutput = false) {
     return new Promise((resolve, reject) => {
@@ -143,7 +136,7 @@ function getGlobalActiveVersionAndChannel() {
  * @returns True if this a versioned path.
  */
 function isVersionedPath(path) {
-    const match = matchVersionAppendix.exec(path);
+    const match = matchVersionedAppendix.exec(path);
     return match !== null && match.length >= 2 && match[1].trim() !== '';
 }
 /**
@@ -190,4 +183,4 @@ class OutputRow {
 function getProjectVersionAndChannel() {
     return fs.existsSync('.flutter-version.json') ? JSON.parse(fs.readFileSync('.flutter-version.json', 'utf8').trim()) : null;
 }
-export { exitOnError, log, getFlutterVersionAndChannel, getGlobalActiveVersionAndChannel, getProjectVersionAndChannel, initPaths, isInRootOfFlutterProject, getPathOfSymlink, isSymlink, isVersionedPath, OutputRow, download, unzip };
+export { exitOnError, getFlutterVersionAndChannel, getGlobalActiveVersionAndChannel, getProjectVersionAndChannel, initPaths, isInRootOfFlutterProject, getPathOfSymlink, isSymlink, isVersionedPath, OutputRow, download, unzip };

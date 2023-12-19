@@ -43,26 +43,9 @@ const availableCommands = {
         func: () => execPath(paths.flutterSymlink)
     }
 };
-function exitWithHelpText(message) {
-    console.log('');
-    console.error(`${message} Commands:`);
-    console.log('');
-    for (var key in availableCommands) {
-        console.log(`${key} - ${availableCommands[key].description}`);
-        if (availableCommands[key].examples) {
-            console.group();
-            availableCommands[key].examples.forEach(function (example) {
-                console.log(example);
-            });
-            console.groupEnd();
-        }
-        console.log('');
-    }
-    process.exit(1);
-}
 async function init() {
     if (process.argv.length <= 2 || !(process.argv[2] in availableCommands)) {
-        exitWithHelpText('Missing or unknown command.');
+        utils.exitOnError('Missing or unknown command for flutter-version');
     }
     const command = process.argv[2];
     try {
