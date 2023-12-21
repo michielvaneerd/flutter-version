@@ -3,6 +3,11 @@ import { execSync } from 'child_process';
 import * as utils from '../utils.js';
 
 /**
+ * Description of the `switch` command.
+ */
+export const description = 'Switch between installed Flutter versions';
+
+/**
  * Switches the active Flutter version on the system. If we are in the root of a Flutter project, it also writes this into the flutter-version.json file.
  */
 export async function execSwitch(argv: Array<string>, flutterVersionsDir: string, flutterSymlink: string) {
@@ -17,12 +22,12 @@ export async function execSwitch(argv: Array<string>, flutterVersionsDir: string
         const newVersion = argv[0];
         newDir = `${flutterVersionsDir}/flutter-${newVersion}`;
     } else {
-        const projectVersionAndChannel = utils.getProjectVersionAndChannel();
-        if (!projectVersionAndChannel) {
+        const projectVersionInfo = utils.getProjectVersionInfo();
+        if (!projectVersionInfo) {
             // No .flutter-version.json, so now we are going to write this file with the current active Flutter version information.
             newDir = utils.getPathOfSymlink(flutterSymlink);
         } else {
-            newDir = `${flutterVersionsDir}/${projectVersionAndChannel.dir}`;
+            newDir = `${flutterVersionsDir}/${projectVersionInfo.dir}`;
         }
     }
 
@@ -38,14 +43,14 @@ export async function execSwitch(argv: Array<string>, flutterVersionsDir: string
     }
     execSync(`ln -s ${newDir} ${flutterSymlink}`);
 
-    const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
+    const globalActiveVersionInfo = utils.getGlobalActiveVersionInfo();
     const realPath = utils.getPathOfSymlink(flutterSymlink);
-    globalActiveVersionAndChannel.dir = realPath.substring(realPath.lastIndexOf('/') + 1);
+    globalActiveVersionInfo.dir = realPath.substring(realPath.lastIndexOf('/') + 1);
 
-    const message = [`Flutter version ${globalActiveVersionAndChannel.version} (${globalActiveVersionAndChannel.channel}) activated, path = ${globalActiveVersionAndChannel.dir}`];
+    const message = [`Flutter version ${globalActiveVersionInfo.version} (${globalActiveVersionInfo.channel}) activated, path = ${globalActiveVersionInfo.dir}`];
 
     if (isInRootOfFlutterProject) {
-        fs.writeFileSync('.flutter-version.json', JSON.stringify(globalActiveVersionAndChannel, null, 4));
+        fs.writeFileSync('.flutter-version.json', JSON.stringify(globalActiveVersionInfo, null, 4));
         message.push('also written into the project .flutter-version.json file');
     }
     console.log(message.join(' - '));

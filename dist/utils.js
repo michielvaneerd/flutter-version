@@ -6,7 +6,7 @@ const matchVersionOutputReg = /Flutter\s([\d\.\-\w]+)\s/;
 const matchChannelOutputReg = /\schannel\s(stable|beta|master)\s/;
 const matchVersionedAppendix = /flutter\-(?=.+[\d])(?=.+[\.])([\d\.\-\w]+)$/;
 function exitOnError(message, errorCode = 1) {
-    console.error(`${message}`);
+    console.error(`ERROR: ${message}`);
     process.exit(errorCode);
 }
 async function download(url, destinationDir, withOutput = false) {
@@ -20,7 +20,7 @@ async function download(url, destinationDir, withOutput = false) {
                 }
                 const contentLength = parseInt(response.headers['content-length'], 10);
                 let currentDownloadedBytes = 0;
-                let currentProgress = 0; // in percentage
+                let currentProgress = 0;
                 const fileStream = fs.createWriteStream(destination);
                 response.pipe(fileStream);
                 response.on('data', data => {
@@ -76,73 +76,23 @@ async function unzip(path, destination, withOutput = false) {
         }
     });
 }
-/**
- * Checks and initializes the `flutterVersionsDir` and `flutterSymlink` paths. These can be overridden with the `~/.flutter-version.json` file.
- */
-function initPaths(homeDir) {
-    const systemConfig = {
-        flutterVersionsDir: `${homeDir}/flutter-versions`,
-        flutterSymlink: `${homeDir}/flutter`
-    };
-    if (fs.existsSync(`${homeDir}/.flutter-version.json`)) {
-        try {
-            const json = JSON.parse(fs.readFileSync(`${homeDir}/.flutter-version.json`, 'utf8'));
-            if (json.flutterVersionsDir) {
-                systemConfig.flutterVersionsDir = json.flutterVersionsDir.replace("~", homeDir);
-            }
-            if (json.flutterSymlink) {
-                systemConfig.flutterSymlink = json.flutterSymlink.replace("~", homeDir);
-            }
-        }
-        catch (ex) {
-            exitOnError(ex instanceof Error ? ex.toString() : 'Unknown error');
-        }
-    }
-    return systemConfig;
-}
-/**
- * Checks whether we are in the root of a Flutter project directory.
- * @returns {Boolean} Whether we are in the root of a Flutter project directory.
- */
 function isInRootOfFlutterProject() {
     return fs.existsSync('pubspec.yaml');
 }
-/**
- * Gets path of the ~/flutter symlink.
- * @returns {String} Path of the symlink.
- */
 function getPathOfSymlink(flutterSymlink) {
     return fs.readlinkSync(flutterSymlink);
 }
-/**
- * Checks whether the given path is a symlink
- * @param {String} flutterSymlink The path to check.
- * @returns {Boolean} True if this is a symlink
- */
-function isSymlink(flutterSymlink) {
-    const stat = fs.lstatSync(flutterSymlink, { throwIfNoEntry: false });
-    return stat !== undefined && stat.isSymbolicLink();
-}
-/**
- * Returns the current system Flutter version, e.g. the output of the `flutter --version` command.
- * @returns {Object} Flutter version and channel.
- */
-function getGlobalActiveVersionAndChannel() {
-    return getFlutterVersionAndChannel();
-}
-/**
- * Checks whether the path is versioned, like flutter-3.16.2
- * @param {String} path Path to check.
- * @returns True if this a versioned path.
- */
 function isVersionedPath(path) {
     const match = matchVersionedAppendix.exec(path);
     return match !== null && match.length >= 2 && match[1].trim() !== '';
 }
-/**
- * Returns the Flutter version of this Flutter directory.
- */
-function getFlutterVersionAndChannel(path = '') {
+function getProjectVersionInfo() {
+    return fs.existsSync('.flutter-version.json') ? JSON.parse(fs.readFileSync('.flutter-version.json', 'utf8').trim()) : null;
+}
+function getGlobalActiveVersionInfo() {
+    return getFlutterVersionInfo();
+}
+function getFlutterVersionInfo(path = '') {
     const realPath = path ? `${path}/bin/flutter --version` : 'flutter --version';
     const output = execSync(realPath).toString();
     const versionMatch = matchVersionOutputReg.exec(output);
@@ -158,29 +108,4 @@ function getFlutterVersionAndChannel(path = '') {
         channel: channelMatch[1].trim()
     };
 }
-class OutputRow {
-    directory;
-    tag;
-    version;
-    channel;
-    active;
-    project;
-    mismatch;
-    constructor(directory, tag, version, channel, active, project, mismatch) {
-        this.directory = directory;
-        this.tag = tag;
-        this.version = version;
-        this.channel = channel;
-        this.active = active;
-        this.project = project;
-        this.mismatch = mismatch;
-    }
-}
-/**
- * Gets the projects Flutter version and channel that is written into yhe .flutter-version.json file.
- * @returns {Object | null} Flutter version and channel that is written in the .flutter-version.json file or null if this file doesn't exist.
- */
-function getProjectVersionAndChannel() {
-    return fs.existsSync('.flutter-version.json') ? JSON.parse(fs.readFileSync('.flutter-version.json', 'utf8').trim()) : null;
-}
-export { exitOnError, getFlutterVersionAndChannel, getGlobalActiveVersionAndChannel, getProjectVersionAndChannel, initPaths, isInRootOfFlutterProject, getPathOfSymlink, isSymlink, isVersionedPath, OutputRow, download, unzip };
+export { exitOnError, getFlutterVersionInfo, getGlobalActiveVersionInfo, getProjectVersionInfo, isInRootOfFlutterProject, getPathOfSymlink, isVersionedPath, download, unzip };

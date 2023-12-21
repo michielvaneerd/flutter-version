@@ -2,12 +2,36 @@ import * as fs from 'fs';
 import * as utils from '../utils.js';
 import constants from '../constants.json' with { type: 'json' };
 
+class OutputRow {
+    directory: string;
+    tag: string;
+    version: string;
+    channel: string;
+    active: boolean;
+    project: boolean;
+    mismatch?: string;
+    constructor(directory: string, tag: string, version: string, channel: string, active: boolean, project: boolean, mismatch?: string) {
+        this.directory = directory;
+        this.tag = tag;
+        this.version = version;
+        this.channel = channel;
+        this.active = active;
+        this.project = project;
+        this.mismatch = mismatch;
+    }
+}
+
+/**
+ * Description of the `list` command.
+ */
+export const description = 'Lists all Flutter versions';
+
 /**
  * Lists all Flutter versions.
  */
 export async function execList(flutterVersionsDir: string) {
-    const globalActiveVersionAndChannel = utils.getGlobalActiveVersionAndChannel();
-    const projectVersionAndChannel = utils.isInRootOfFlutterProject() ? utils.getProjectVersionAndChannel() : null;
+    const globalActiveVersionInfo = utils.getGlobalActiveVersionInfo();
+    const projectVersionInfo = utils.isInRootOfFlutterProject() ? utils.getProjectVersionInfo() : null;
     const files = fs.readdirSync(flutterVersionsDir).filter(function (file) {
         return file.startsWith('flutter-');
     }).map(function (file) {
@@ -17,22 +41,22 @@ export async function execList(flutterVersionsDir: string) {
     const rows = [];
     for (const version of files) {
         const dir = `flutter-${version}`;
-        const versionAndChannel = utils.getFlutterVersionAndChannel(`${flutterVersionsDir}/${dir}`);
-        const row = new utils.OutputRow(
+        const versionInfo = utils.getFlutterVersionInfo(`${flutterVersionsDir}/${dir}`);
+        const row = new OutputRow(
             dir,
             version,
-            versionAndChannel.version,
-            versionAndChannel.channel,
-            versionAndChannel.version === globalActiveVersionAndChannel.version && versionAndChannel.channel === globalActiveVersionAndChannel.channel,
-            projectVersionAndChannel !== null && projectVersionAndChannel.version === versionAndChannel.version && projectVersionAndChannel.channel === versionAndChannel.channel
+            versionInfo.version,
+            versionInfo.channel,
+            versionInfo.version === globalActiveVersionInfo.version && versionInfo.channel === globalActiveVersionInfo.channel,
+            projectVersionInfo !== null && projectVersionInfo.version === versionInfo.version && projectVersionInfo.channel === versionInfo.channel
         );
         if (constants.knownChannels.indexOf(version) !== -1) {
-            if (version !== versionAndChannel.channel) {
-                row.mismatch = `Directory doesn't match channel ${versionAndChannel.channel}`;
+            if (version !== versionInfo.channel) {
+                row.mismatch = `Directory doesn't match channel ${versionInfo.channel}`;
             }
         } else {
-            if (version !== versionAndChannel.version) {
-                row.mismatch = `Directory doesn't match version ${versionAndChannel.version}`;
+            if (version !== versionInfo.version) {
+                row.mismatch = `Directory doesn't match version ${versionInfo.version}`;
             }
         }
         rows.push(row);

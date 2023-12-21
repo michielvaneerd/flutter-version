@@ -4,10 +4,20 @@ import * as path from 'path';
 import * as utils from '../utils.js';
 
 /**
- * Install specific Flutter version
+ * Description of the `install` command.
+ */
+export const description = 'Install Flutter version';
+
+/**
+ * Install a specific Flutter version.
+ * 
+ * Usage:
+ * `flutter-version install VERSION [CHANNEL]`
+ * 
  * Examples:
- *  `flutter-version install 3.16.8 stable`
- *  `flutter-version install 3.16.8.pre beta`
+ * - `flutter-version install 3.16.8 stable`
+ * - `flutter-version install 3.16.8` - `stable` is the default and therefore not required
+ * - `flutter-version install 3.16.8.pre beta`
  */
 export async function execInstall(flutterVersionsDir: string) {
     const tmpDir = os.tmpdir();
