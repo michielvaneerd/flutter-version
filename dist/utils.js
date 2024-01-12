@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { execSync, spawn } from 'child_process';
 import * as https from 'https';
 import * as path from 'path';
-const matchVersionOutputReg = /Flutter\s([\d\.\-\w]+)\s/;
+const matchVersionOutputReg = /Flutter\s([\d+][\d\.\-\w]+)\s/;
 const matchChannelOutputReg = /\schannel\s(stable|beta|master)\s/;
 const matchVersionedAppendix = /flutter\-(?=.+[\d])(?=.+[\.])([\d\.\-\w]+)$/;
 function exitOnError(message, errorCode = 1) {
